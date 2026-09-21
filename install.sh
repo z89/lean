@@ -1,46 +1,116 @@
 #!/usr/bin/env bash
-# installs lean into ~/.claude by symlink and wires the two hooks into
-# settings.json. idempotent: run again after a git pull and nothing changes.
-# --adopt: replace matching real files already in ~/.claude with symlinks.
-#          without it, a real file in the way is an error.
+# installs lean into claude code and/or codex cli by symlink and wires
+# the two hooks. idempotent: run again after a git pull and nothing changes.
+#   ./install.sh                 detect harnesses, ask which to install
+#   ./install.sh --claude        no prompt
+#   ./install.sh --codex         no prompt
+#   ./install.sh --all           every detected harness, no prompt
+#   --adopt                      replace real files already at the target paths with symlinks
 set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CL="${CLAUDE_HOME:-$HOME/.claude}"
-S="$CL/settings.json"
-ADOPT=0; [ "${1:-}" = "--adopt" ] && ADOPT=1
-say() { printf 'lean: %s\n' "$*"; }
-die() { say "error: $*" >&2; exit 1; }
+CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
+CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
+AGENTS_HOME="${AGENTS_HOME:-$HOME/.agents}"
+
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+  B=$'\e[1m'; D=$'\e[2m'; R=$'\e[0m'; C=$'\e[36m'; G=$'\e[32m'; Y=$'\e[33m'; X=$'\e[31m'
+else B=; D=; R=; C=; G=; Y=; X=; fi
+ok()   { printf '  %s✅%s %s\n' "$G" "$R" "$*"; }
+info() { printf '  %s🔗%s %s\n' "$C" "$R" "$*"; }
+warn() { printf '  %s⚠️ %s %s\n' "$Y" "$R" "$*"; }
+head_() { printf '\n%s%s%s\n' "$B" "$*" "$R"; }
+die()  { printf '  %s❌ %s%s\n' "$X" "$*" "$R" >&2; exit 1; }
+
+ADOPT=0; WANT_CLAUDE=0; WANT_CODEX=0; ALL=0; ASKED=0
+for a in "$@"; do case "$a" in
+  --adopt) ADOPT=1 ;; --claude) WANT_CLAUDE=1; ASKED=1 ;; --codex) WANT_CODEX=1; ASKED=1 ;; --all) ALL=1; ASKED=1 ;;
+  -h|--help) sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  *) die "unknown option $a" ;;
+esac; done
+
+printf '\n%s🌿 lean%s %sinstaller%s\n' "$B" "$R" "$D" "$R"
 command -v python3 >/dev/null || die "python3 is required (macOS: xcode-select --install   arch: sudo pacman -S python)"
 command -v jq >/dev/null || die "jq is required (macOS: brew install jq   arch: sudo pacman -S jq)"
-mkdir -p "$CL/hooks" "$CL/skills"
+
+head_ "🔍 detecting harnesses"
+HAS_CLAUDE=0; HAS_CODEX=0
+{ [ -d "$CLAUDE_HOME" ] || command -v claude >/dev/null; } && HAS_CLAUDE=1
+{ [ -d "$CODEX_HOME" ] || command -v codex >/dev/null; } && HAS_CODEX=1
+[ "$HAS_CLAUDE" = 1 ] && ok "claude code  ${D}$CLAUDE_HOME${R}" || printf '  %s➖ claude code  not found%s\n' "$D" "$R"
+[ "$HAS_CODEX" = 1 ]  && ok "codex cli    ${D}$CODEX_HOME${R}"  || printf '  %s➖ codex cli    not found%s\n' "$D" "$R"
+[ "$HAS_CLAUDE" = 1 ] || [ "$HAS_CODEX" = 1 ] || die "no harness found. install claude code or codex cli first"
+
+if [ "$ALL" = 1 ]; then WANT_CLAUDE=$HAS_CLAUDE; WANT_CODEX=$HAS_CODEX
+elif [ "$ASKED" = 0 ]; then
+  if [ "$HAS_CLAUDE" = 1 ] && [ "$HAS_CODEX" = 1 ] && [ -t 0 ]; then
+    head_ "🎯 which harness?"
+    printf '  %s1%s) claude code\n  %s2%s) codex cli\n  %s3%s) both\n' "$C" "$R" "$C" "$R" "$C" "$R"
+    printf '  %s>%s ' "$B" "$R"; read -r pick
+    case "$pick" in 1) WANT_CLAUDE=1 ;; 2) WANT_CODEX=1 ;; 3|"") WANT_CLAUDE=1; WANT_CODEX=1 ;; *) die "pick 1, 2 or 3" ;; esac
+  else WANT_CLAUDE=$HAS_CLAUDE; WANT_CODEX=$HAS_CODEX; fi
+fi
+[ "$WANT_CLAUDE" = 1 ] && [ "$HAS_CLAUDE" = 0 ] && die "claude code not found"
+[ "$WANT_CODEX" = 1 ]  && [ "$HAS_CODEX" = 0 ]  && die "codex cli not found"
 
 link() { # link <repo-relative source> <target path>
   local src="$REPO/$1" dst="$2"
   if [ -L "$dst" ]; then
-    [ "$(readlink "$dst")" = "$src" ] && { say "ok      $dst"; return; }
+    [ "$(readlink "$dst")" = "$src" ] && { ok "$dst ${D}already linked${R}"; return; }
     rm -f "$dst"
   elif [ -e "$dst" ]; then
     [ "$ADOPT" = 1 ] || die "$dst exists and is not a symlink. re-run with --adopt to replace it"
-    rm -rf "$dst"; say "adopted $dst"
+    rm -rf "$dst"; warn "replaced $dst"
   fi
-  ln -s "$src" "$dst"; say "linked  $dst"
+  ln -s "$src" "$dst"; info "$dst"
 }
-link hooks/lean-mode.sh    "$CL/hooks/lean-mode.sh"
-link hooks/lean-compact.sh "$CL/hooks/lean-compact.sh"
-link skills/lean           "$CL/skills/lean"
-link skills/lean-always    "$CL/skills/lean-always"
+wire_json() { # wire_json <file> <mode cmd> <compact cmd>
+  local f="$1"
+  [ -f "$f" ] || { mkdir -p "$(dirname "$f")"; echo '{}' > "$f"; }
+  jq --arg m "$2" --arg c "$3" '
+    def ensure($ev; $cmd):
+      .hooks //= {} | .hooks[$ev] //= [] |
+      if ([.hooks[$ev][]?.hooks[]?.command] | index($cmd)) then . else
+        .hooks[$ev] += [{"hooks":[{"type":"command","command":$cmd}]}] end;
+    ensure("UserPromptSubmit"; $m) | ensure("PreCompact"; $c)
+  ' "$f" > "$f.lean-tmp" || die "$f merge failed (invalid JSON?)"
+  jq -e . "$f.lean-tmp" >/dev/null || die "merge produced invalid JSON, $f untouched"
+  mv "$f.lean-tmp" "$f"; ok "$f ${D}UserPromptSubmit + PreCompact${R}"
+}
 chmod +x "$REPO/hooks/"*.sh
 
-# settings.json: add each hook once, keyed on its command string
-[ -f "$S" ] || echo '{}' > "$S"
-CMD_MODE="bash $CL/hooks/lean-mode.sh"; CMD_COMPACT="bash $CL/hooks/lean-compact.sh"
-jq --arg m "$CMD_MODE" --arg c "$CMD_COMPACT" '
-  def ensure($ev; $cmd):
-    .hooks //= {} | .hooks[$ev] //= [] |
-    if ([.hooks[$ev][]?.hooks[]?.command] | index($cmd)) then . else
-      .hooks[$ev] += [{"hooks":[{"type":"command","command":$cmd}]}] end;
-  ensure("UserPromptSubmit"; $m) | ensure("PreCompact"; $c)
-' "$S" > "$S.lean-tmp" || die "settings.json merge failed (invalid JSON?)"
-jq -e . "$S.lean-tmp" >/dev/null || die "merge produced invalid JSON, original untouched"
-mv "$S.lean-tmp" "$S"; say "wired   $S (UserPromptSubmit + PreCompact)"
-say "installed. lean is OFF until you run /lean-always on in claude code"
+if [ "$WANT_CLAUDE" = 1 ]; then
+  head_ "🤖 claude code"
+  mkdir -p "$CLAUDE_HOME/hooks" "$CLAUDE_HOME/skills"
+  link hooks/lean-mode.sh           "$CLAUDE_HOME/hooks/lean-mode.sh"
+  link hooks/lean-compact.sh        "$CLAUDE_HOME/hooks/lean-compact.sh"
+  link claude/skills/lean           "$CLAUDE_HOME/skills/lean"
+  link claude/skills/lean-always    "$CLAUDE_HOME/skills/lean-always"
+  wire_json "$CLAUDE_HOME/settings.json" "bash $CLAUDE_HOME/hooks/lean-mode.sh" "bash $CLAUDE_HOME/hooks/lean-compact.sh"
+fi
+
+if [ "$WANT_CODEX" = 1 ]; then
+  head_ "🧭 codex cli"
+  mkdir -p "$CODEX_HOME/hooks" "$AGENTS_HOME/skills"
+  link hooks/lean-mode.sh           "$CODEX_HOME/hooks/lean-mode.sh"
+  link hooks/lean-compact.sh        "$CODEX_HOME/hooks/lean-compact.sh"
+  link codex/skills/lean            "$AGENTS_HOME/skills/lean"
+  link codex/skills/lean-always     "$AGENTS_HOME/skills/lean-always"
+  wire_json "$CODEX_HOME/hooks.json" "bash $CODEX_HOME/hooks/lean-mode.sh codex" "bash $CODEX_HOME/hooks/lean-compact.sh codex"
+  # codex gates hooks behind [features] hooks = true; add it once, tagged so uninstall can find it
+  HL_D="$D" HL_R="$R" python3 - "$CODEX_HOME/config.toml" <<'PY'
+import re, sys, os
+D, R = os.environ.get("HL_D", ""), os.environ.get("HL_R", "")
+p = sys.argv[1]; s = open(p).read() if os.path.exists(p) else ""
+if re.search(r"^\s*hooks\s*=\s*true", s, re.M) and "[features]" in s:
+    print(f"  ✅ config.toml {D}hooks already enabled{R}"); sys.exit()
+line = "hooks = true # lean\n"
+m = re.search(r"^\[features\]\s*\n", s, re.M)
+s = s[:m.end()] + line + s[m.end():] if m else s.rstrip("\n") + ("\n\n" if s else "") + "[features]\n" + line
+open(p, "w").write(s); print(f"  ✅ config.toml {D}[features] hooks = true{R}")
+PY
+fi
+
+head_ "🎉 installed"
+[ "$WANT_CLAUDE" = 1 ] && printf '  claude code: %s/lean-always on%s to enable\n' "$C" "$R"
+[ "$WANT_CODEX" = 1 ]  && printf '  codex cli:   %s$lean-always on%s to enable\n' "$C" "$R"
+printf '  %s./uninstall.sh reverses everything%s\n\n' "$D" "$R"

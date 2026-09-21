@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# PreCompact hook: forget the lean tier state for this session so the full
-# directive is re-injected on the first prompt after compaction.
+# PreCompact hook for claude code and codex cli: forget the lean tier state for
+# this session so the full directive is re-injected after compaction.
+# usage: lean-compact.sh [claude|codex]   default claude
+case "${1:-claude}" in claude) D="$HOME/.claude" ;; codex) D="$HOME/.codex" ;; *) exit 0 ;; esac
 sid=$(sed -n 's/.*"session_id" *: *"\([A-Za-z0-9_-]*\)".*/\1/p' | head -1)
-[ -n "$sid" ] && rm -f "$HOME/.claude/lean-state/$sid"
+[ -n "$sid" ] && rm -f "$D/lean-state/$sid"
 exit 0

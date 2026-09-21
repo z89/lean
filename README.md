@@ -1,6 +1,6 @@
 # lean
 
-a `UserPromptSubmit` hook for claude code that sizes a token-saving directive to each prompt. it cuts output, narration and file reads, never thinking. two skills ride along: `/lean-always on|off|status` toggles it, `/lean <prompt>` runs one prompt leanly.
+a `UserPromptSubmit` hook for claude code and codex cli that sizes a token-saving directive to each prompt. it cuts output, narration and file reads, never thinking. two skills ride along: `lean-always on|off|status` toggles it, `lean <prompt>` runs one prompt leanly.
 
 ## install
 
@@ -10,7 +10,14 @@ needs `python3` and `jq`.
 git clone git@github.com:z89/lean.git && cd lean && ./install.sh
 ```
 
-then `/lean-always on` inside claude code. `./install.sh --adopt` replaces existing files at the target paths with symlinks. `./uninstall.sh` reverses everything.
+the installer detects claude code and codex cli and asks which to set up. `--claude`, `--codex` or `--all` skip the question, `--adopt` replaces existing files at the target paths with symlinks. `./uninstall.sh` asks the same way and reverses everything.
+
+| harness | enable | skills | hook wiring |
+| --- | --- | --- | --- |
+| claude code | `/lean-always on` | `~/.claude/skills/lean`, `lean-always` | `~/.claude/settings.json` |
+| codex cli | `$lean-always on` | `~/.agents/skills/lean`, `lean-always` | `~/.codex/hooks.json` + `[features] hooks = true` in `config.toml` |
+
+the hook script is shared; only the delegation wording differs (sonnet/opus names for claude, generic for codex). codex cannot change reasoning effort from a hook, so set `model_reasoning_effort` in `config.toml` yourself.
 
 ## tiers
 
@@ -34,10 +41,10 @@ savings are estimates from typical claude code sessions, not benchmarks. the ful
 ## layout
 
 ```
-hooks/lean-mode.sh      tiering hook (UserPromptSubmit)
+hooks/lean-mode.sh      tiering hook (UserPromptSubmit), takes claude|codex
 hooks/lean-compact.sh   clears session state (PreCompact)
-skills/lean-always/     /lean-always on|off|status
-skills/lean/            /lean <prompt>
+claude/skills/          /lean, /lean-always
+codex/skills/           $lean, $lean-always
 install.sh uninstall.sh
 ```
 
