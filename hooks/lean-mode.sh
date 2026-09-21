@@ -81,5 +81,7 @@ Edits: minimal diffs; one filtered verification per change; state pass/fail.
 Make routine judgment calls yourself; ask only when different readings would lead to materially different work.
 Output: outcome first, dense; every finding kept with a confidence tag; no padding, no recap. Mark unchecked claims "(unverified)". If blocked, one line: blocker + cheapest next step."""
 
-print((T0, T1, T2)[tier] if full else f"[LEAN T{tier} on, rules above still apply]")
+text = (T0, T1, T2)[tier] if full else f"[LEAN T{tier} on, rules above still apply]"
+# JSON output on both harnesses: codex sniffs a leading "[" as JSON and rejects plain text
+print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": text}}))
 PY
