@@ -19,6 +19,10 @@ the installer detects claude code and codex cli and asks which to set up. `--cla
 
 the hook script is shared; only the delegation wording differs (sonnet/opus names for claude, generic for codex). codex cannot change reasoning effort from a hook, so set `model_reasoning_effort` in `config.toml` yourself.
 
+## scope
+
+the toggle is global per harness, not per session. `~/.claude/lean.on` (or `~/.codex/lean.on`) is a single flag file and the hook checks it on every prompt, so turning it off in one window turns it off in every other open session at its next prompt, and in every session you start later. it stays off until you turn it back on, restarts included. there is no per-session switch: use `#lean` or `#deep` to force a tier for one prompt. the two harnesses keep separate flags and do not affect each other.
+
 ## tiers
 
 | tier | picked when | directive says | injected (first / later) | est. saving per turn |

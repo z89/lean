@@ -9,11 +9,13 @@ allowed-tools: Bash
 
 Flag file: `~/.claude/lean.on`. Hook: `~/.claude/hooks/lean-mode.sh` (UserPromptSubmit).
 
+Scope: the flag is global to claude code, not per session. `on` and `off` take effect in every open session at its next prompt and in every session started later, and persist across restarts. There is no per-session toggle; `#lean` or `#deep` force a tier for a single prompt. `~/.codex/lean.on` is a separate flag and is not affected.
+
 Run exactly one command based on `$ARGUMENTS` (default: `on`), then reply in one line.
 
 - `on`: `touch ~/.claude/lean.on` -> reply `lean mode ON (every prompt, all sessions). tiers: T0 trivial / T1 standard / T2 critical, auto-picked per prompt; force with #lean or #deep. /lean-always off to disable.`
-- `off`: `rm -f ~/.claude/lean.on` -> reply `lean mode OFF.`
-- `status`: `test -f ~/.claude/lean.on && echo ON || echo OFF` -> reply with the result plus the tier line above if ON.
+- `off`: `rm -f ~/.claude/lean.on` -> reply `lean mode OFF (all sessions, this harness).`
+- `status`: `test -f ~/.claude/lean.on && echo ON || echo OFF` -> reply with the result plus the tier line above if ON, noting it is global to claude code.
 
 ## How the hook tiers (for reference, do not repeat to the user)
 

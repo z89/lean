@@ -7,11 +7,13 @@ description: Toggle persistent lean mode for codex. A hook then injects a tiered
 
 Flag file: `~/.codex/lean.on`. Hook: `~/.codex/hooks/lean-mode.sh` (UserPromptSubmit, wired in `~/.codex/hooks.json`).
 
+Scope: the flag is global to codex, not per session. `on` and `off` take effect in every open session at its next prompt and in every session started later, and persist across restarts. There is no per-session toggle; `#lean` or `#deep` force a tier for a single prompt. `~/.claude/lean.on` is a separate flag and is not affected.
+
 The argument is whatever follows `$lean-always` in the prompt (default: `on`). Run exactly one command, then reply in one line.
 
 - `on`: `touch ~/.codex/lean.on` -> reply `lean mode ON (every prompt, all sessions). tiers: T0 trivial / T1 standard / T2 critical, auto-picked per prompt; force with #lean or #deep. $lean-always off to disable.`
-- `off`: `rm -f ~/.codex/lean.on` -> reply `lean mode OFF.`
-- `status`: `test -f ~/.codex/lean.on && echo ON || echo OFF` -> reply with the result plus the tier line above if ON.
+- `off`: `rm -f ~/.codex/lean.on` -> reply `lean mode OFF (all sessions, this harness).`
+- `status`: `test -f ~/.codex/lean.on && echo ON || echo OFF` -> reply with the result plus the tier line above if ON, noting it is global to codex.
 
 ## How the hook tiers (for reference, do not repeat to the user)
 
