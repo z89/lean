@@ -21,6 +21,7 @@ The argument is whatever follows `$lean-always` in the prompt (default: `on`). R
 - T1 standard: everything else. Full reasoning, targeted reads, minimal diffs, dense output, agents only for large independent work.
 - T2 critical: risk or scope words (prod, security, auth, migration, deploy, refactor, codebase, parallel, design, thorough, deep...) or prompt over 600 chars. Full depth, parallel agents scoped to the number of genuinely independent tracks (cap 5), optional single verifier when a wrong result is costly.
 - `#lean` anywhere in a prompt forces T0, `#deep` forces T2.
+- Agent models: `gpt-6-luna` mechanical, `gpt-6-sol` judgment. `gpt-6-astra` is rare: when asked, for absolutely critical or extremely complex work, after `gpt-6-sol` fails a step twice, and one review of any plan fanning out to 3+ agents.
 - Every tier keeps: read before asserting, never fabricate to stay short, keep all findings (cut filler not content).
 - Reasoning effort cannot be changed per turn from a hook in codex; set `model_reasoning_effort` in `~/.codex/config.toml` or `/model` for that.
 

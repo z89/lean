@@ -17,7 +17,7 @@ the installer detects claude code and codex cli and asks which to set up. `--cla
 | claude code | `/lean-always on` | `~/.claude/skills/lean`, `lean-always` | `~/.claude/settings.json` |
 | codex cli | `$lean-always on` | `~/.agents/skills/lean`, `lean-always` | `~/.codex/hooks.json` + `[features] hooks = true` in `config.toml` |
 
-the hook script is shared; only the delegation wording differs (sonnet/opus names for claude, generic for codex). codex cannot change reasoning effort from a hook, so set `model_reasoning_effort` in `config.toml` yourself.
+the hook script is shared; only the delegation wording differs: claude hands mechanical work to sonnet and judgment to opus (Opus 5.5); codex uses `gpt-6-luna` and `gpt-6-sol`. the premium model (fable (Fable 5.1) on claude, `gpt-6-astra` on codex) is rare: only when asked, for absolutely critical or extremely complex work, after the judgment model fails the same step twice, and for one review of any plan that fans out to 3+ agents before the cheaper workers start. codex cannot change reasoning effort from a hook, so set `model_reasoning_effort` in `config.toml` yourself.
 
 ## scope
 
@@ -28,8 +28,8 @@ the toggle is global per harness, not per session. `~/.claude/lean.on` (or `~/.c
 | tier | picked when | directive says | injected (first / later) | est. saving per turn |
 | --- | --- | --- | --- | --- |
 | T0 | under 120 chars, no action verb or risk word, or `#lean` | answer from knowledge, open a file only if needed | ~45 / ~10 tokens | 60 to 80% of output, most tool calls gone |
-| T1 | everything else, any edit or run ask | exact-line reads, minimal diffs, one verify per change, no narration | ~170 / ~10 tokens | 40 to 60% of output and tool tokens |
-| T2 | production, security, auth, migration, deploy, codebase, parallel, orchestrate, architecture, over 600 chars, or `#deep` | full depth, agents only for independent tracks (cap 5), one verifier when a miss is costly | ~230 / ~10 tokens | 20 to 40%, mainly from avoided agent fan-out |
+| T1 | everything else, any edit or run ask | exact-line reads, minimal diffs, one verify per change, no narration | ~180 / ~10 tokens | 40 to 60% of output and tool tokens |
+| T2 | production, security, auth, migration, deploy, codebase, parallel, orchestrate, architecture, over 600 chars, or `#deep` | full depth, agents only for independent tracks (cap 5), one verifier when a miss is costly, one premium review of any plan fanning out to 3+ agents | ~290 / ~10 tokens | 20 to 40%, mainly from avoided agent fan-out |
 
 savings are estimates from typical claude code sessions, not benchmarks. the full text is injected on a tier change and every eighth prompt, a ten token reminder otherwise, and again after compaction. `yes`, `ok`, `continue` and other short follow-ups inherit the previous tier.
 

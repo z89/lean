@@ -23,6 +23,7 @@ Run exactly one command based on `$ARGUMENTS` (default: `on`), then reply in one
 - T1 standard: everything else. Full thinking, targeted reads, minimal diffs, dense output, <=2 agents only for independent large work.
 - T2 critical: risk or scope words (prod, security, auth, migration, deploy, refactor, codebase, parallel, design, thorough, deep...) or prompt over 600 chars. Full depth, parallel agents scoped to the number of genuinely independent tracks (cap 5), optional single verifier when a wrong result is costly.
 - `#lean` anywhere in a prompt forces T0, `#deep` forces T2.
+- Agent models: sonnet mechanical, opus (Opus 5.5) judgment. fable (Fable 5.1) is rare: when asked, for absolutely critical or extremely complex work, after opus fails a step twice, and one review of any plan fanning out to 3+ agents.
 - Every tier keeps: read before asserting, never fabricate to stay short, keep all findings (cut filler not content).
 
 While the flag is on, this very turn is already lean: obey the injected directive. No other output.

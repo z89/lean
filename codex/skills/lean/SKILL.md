@@ -17,7 +17,7 @@ what you write and how many tools you call, never to how carefully you think.
 | A. Knowledge | general question, recommendation, explanation | Answer directly. Zero tools. |
 | B. Small local change | one file, known location | Targeted read of the needed lines, one edit, one verify |
 | C. Research / wide read | many files, logs, web | Do it yourself if a handful of tool calls suffice; else one cheap worker returning a conclusion |
-| D. Large build | multi-file feature, several independent tracks | Scope tiers below; plan in <=10 lines if it exceeds budget and ask which slice to do now |
+| D. Large build | multi-file feature, several independent tracks | Plan on gpt-6-sol, one gpt-6-astra review before fanning out to 3+ agents; scope tiers below; plan in <=10 lines if it exceeds budget and ask which slice to do now |
 
 Unsure between A and C: answer, tag uncertain claims `(unverified)`. The user can ask
 for verification of one point, which costs far less than pre-emptive research.
@@ -41,7 +41,13 @@ for verification of one point, which costs far less than pre-emptive research.
 - N genuinely independent tracks: N agents (cap 5), disjoint files, interfaces fixed up front.
 - One independent verifier agent only when a wrong result is costly (prod, security, data).
 - Raise thinking before raising agent count. Never spawn agents to re-check your own work.
-- A cheaper model for mechanical work (lookup, grep, logs, edits) when the harness offers one, the current model for judgment.
+- `gpt-6-luna` mechanical (lookup, grep, logs, edits), `gpt-6-sol` judgment. These do all normal work.
+- `gpt-6-astra` is rare. Use it only when the user asks, for absolutely critical work (a miss hits
+  prod, security or data) or extremely complex work, or after `gpt-6-sol` fails the same step twice.
+  Never for mechanical work.
+- Plans that fan out to 3+ agents: write the plan on `gpt-6-sol`, have one `gpt-6-astra` agent review it once
+  for accuracy, gaps and interface conflicts, fix it, then spawn the cheaper workers. One review
+  costs far less than a wasted fan-out.
 - Worker prompt <=150 words, returns <=15 lines of conclusion, no file dumps. Tell workers
   not to sub-spawn. Do not both delegate and repeat the work yourself.
 
