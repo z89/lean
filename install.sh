@@ -53,6 +53,10 @@ fi
 [ "$WANT_CLAUDE" = 1 ] && [ "$HAS_CLAUDE" = 0 ] && die "claude code not found"
 [ "$WANT_CODEX" = 1 ]  && [ "$HAS_CODEX" = 0 ]  && die "codex cli not found"
 
+# /lean and $lean were retired; drop the link an older install left behind
+drop_retired() { local dst="$1" src="$REPO/$2"
+  if [ -L "$dst" ] && [ "$(readlink "$dst")" = "$src" ]; then rm -f "$dst"; ok "$dst ${D}retired, removed${R}"; fi; }
+
 # install_pairs <src|dst> ...   links each pair, but never deletes anything the
 # user has not been shown first: real files in the way are listed and confirmed.
 install_pairs() {
@@ -107,8 +111,8 @@ if [ "$WANT_CLAUDE" = 1 ]; then
   install_pairs \
     "hooks/lean-mode.sh|$CLAUDE_HOME/hooks/lean-mode.sh" \
     "hooks/lean-compact.sh|$CLAUDE_HOME/hooks/lean-compact.sh" \
-    "claude/skills/lean|$CLAUDE_HOME/skills/lean" \
     "claude/skills/lean-always|$CLAUDE_HOME/skills/lean-always"
+  drop_retired "$CLAUDE_HOME/skills/lean" claude/skills/lean
   wire_json "$CLAUDE_HOME/settings.json" "bash $CLAUDE_HOME/hooks/lean-mode.sh" "bash $CLAUDE_HOME/hooks/lean-compact.sh"
 fi
 
@@ -118,8 +122,8 @@ if [ "$WANT_CODEX" = 1 ]; then
   install_pairs \
     "hooks/lean-mode.sh|$CODEX_HOME/hooks/lean-mode.sh" \
     "hooks/lean-compact.sh|$CODEX_HOME/hooks/lean-compact.sh" \
-    "codex/skills/lean|$AGENTS_HOME/skills/lean" \
     "codex/skills/lean-always|$AGENTS_HOME/skills/lean-always"
+  drop_retired "$AGENTS_HOME/skills/lean" codex/skills/lean
   wire_json "$CODEX_HOME/hooks.json" "bash $CODEX_HOME/hooks/lean-mode.sh codex" "bash $CODEX_HOME/hooks/lean-compact.sh codex"
   # codex gates hooks behind [features] hooks = true; add it once, tagged so uninstall can find it
   HL_D="$D" HL_R="$R" python3 - "$CODEX_HOME/config.toml" <<'PY'
@@ -140,6 +144,6 @@ PY
 fi
 
 head_ "🎉 installed"
-[ "$WANT_CLAUDE" = 1 ] && printf '  claude code: %s/lean-always on%s to enable\n' "$C" "$R"
-[ "$WANT_CODEX" = 1 ]  && printf '  codex cli:   %s$lean-always on%s to enable\n' "$C" "$R"
+[ "$WANT_CLAUDE" = 1 ] && printf '  claude code: %s/lean-always on%s or %s/lean on%s in a session to enable it there\n' "$C" "$R" "$C" "$R"
+[ "$WANT_CODEX" = 1 ]  && printf '  codex cli:   %s$lean-always on%s or %s$lean on%s in a session to enable it there\n' "$C" "$R" "$C" "$R"
 printf '  %s./uninstall.sh reverses everything%s\n\n' "$D" "$R"

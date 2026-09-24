@@ -1,6 +1,6 @@
 # lean
 
-a `UserPromptSubmit` hook for claude code and codex cli that sizes a token-saving directive to each prompt. it cuts output, narration and file reads, never thinking. two skills ride along: `lean-always on|off|status` toggles it, `lean <prompt>` runs one prompt leanly.
+a `UserPromptSubmit` hook for claude code and codex cli that sizes a token-saving directive to each prompt. it cuts output, narration and file reads, never thinking. one skill rides along: `lean-always on|off|status` turns it on or off for the current session.
 
 ## install
 
@@ -14,14 +14,23 @@ the installer detects claude code and codex cli and asks which to set up. `--cla
 
 | harness | enable | skills | hook wiring |
 | --- | --- | --- | --- |
-| claude code | `/lean-always on` | `~/.claude/skills/lean`, `lean-always` | `~/.claude/settings.json` |
-| codex cli | `$lean-always on` | `~/.agents/skills/lean`, `lean-always` | `~/.codex/hooks.json` + `[features] hooks = true` in `config.toml` |
+| claude code | `/lean-always on` | `~/.claude/skills/lean-always` | `~/.claude/settings.json` |
+| codex cli | `$lean-always on` | `~/.agents/skills/lean-always` | `~/.codex/hooks.json` + `[features] hooks = true` in `config.toml` |
 
 the hook script is shared; only the delegation wording differs: claude hands mechanical work to sonnet and judgment to opus (Opus 5.5); codex uses `gpt-6-luna` and `gpt-6-sol`. the premium model (fable (Fable 5.1) on claude, `gpt-6-astra` on codex) is rare: only when asked, for absolutely critical or extremely complex work, after the judgment model fails the same step twice, and for one review of any plan that fans out to 3+ agents before the cheaper workers start. codex cannot change reasoning effort from a hook, so set `model_reasoning_effort` in `config.toml` yourself.
 
 ## scope
 
-the toggle is global per harness, not per session. `~/.claude/lean.on` (or `~/.codex/lean.on`) is a single flag file and the hook checks it on every prompt, so turning it off in one window turns it off in every other open session at its next prompt, and in every session you start later. it stays off until you turn it back on, restarts included. there is no per-session switch: use `#lean` or `#deep` to force a tier for one prompt. the two harnesses keep separate flags and do not affect each other.
+the switch is per session. `/lean-always on` in one window affects that window only; every other open session and every new one keeps its own setting. a session's choice survives compaction and resume.
+
+| command | effect |
+| --- | --- |
+| `lean-always on` / `off` | tiered directive for this session |
+| `lean-always status` | this session's switch, plus the default |
+| `lean-always default on` / `off` | what sessions that never ran `lean-always on` or `off` get, new ones included |
+| `#lean`, `#deep` in a prompt | force T0 or T2 for that prompt only |
+
+the hook applies the command from the prompt before the model sees it, so it works on the same turn. on claude code the skill also runs `lean-mode.sh claude set "$CLAUDE_CODE_SESSION_ID" ...` directly, which is a no-op if the hook already did it. the switch lives in `<harness home>/lean-state/<session_id>.always`, the default in `<harness home>/lean.on`. the two harnesses keep separate state and do not affect each other.
 
 ## tiers
 
@@ -45,10 +54,10 @@ savings are estimates from typical claude code sessions, not benchmarks. the ful
 ## layout
 
 ```
-hooks/lean-mode.sh      tiering hook (UserPromptSubmit), takes claude|codex
-hooks/lean-compact.sh   clears session state (PreCompact)
-claude/skills/          /lean, /lean-always
-codex/skills/           $lean, $lean-always
+hooks/lean-mode.sh      tiering hook (UserPromptSubmit) and per-session switch, takes claude|codex
+hooks/lean-compact.sh   clears session tier state, keeps the switch (PreCompact)
+claude/skills/          /lean-always
+codex/skills/           $lean-always
 install.sh uninstall.sh
 ```
 

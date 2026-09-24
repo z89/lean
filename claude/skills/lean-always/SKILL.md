@@ -1,21 +1,21 @@
 ---
 name: lean-always
-description: Toggle persistent lean mode. A hook then injects a tiered token-saving directive on every prompt in every session until turned off. Use when the user invokes /lean-always, /lean-always on, /lean-always off, or /lean-always status.
-argument-hint: [on|off|status]
+description: Toggle tiered lean mode for this session only. While on, a hook injects a tiered token-saving directive on every prompt of this session. Use when the user invokes /lean-always, /lean-always on, /lean-always off, /lean-always status, or /lean-always default on|off.
+argument-hint: [on|off|status|default on|default off]
 allowed-tools: Bash
 ---
 
 # /lean-always
 
-Flag file: `~/.claude/lean.on`. Hook: `~/.claude/hooks/lean-mode.sh` (UserPromptSubmit).
+Switch: `~/.claude/lean-state/<session_id>.always` (on or off). Default for sessions that never toggled: `~/.claude/lean.on`. Hook: `~/.claude/hooks/lean-mode.sh` (UserPromptSubmit).
 
-Scope: the flag is global to claude code, not per session. `on` and `off` take effect in every open session at its next prompt and in every session started later, and persist across restarts. There is no per-session toggle; `#lean` or `#deep` force a tier for a single prompt. `~/.codex/lean.on` is a separate flag and is not affected.
+Scope: `on` and `off` apply to this session only; other open sessions and new ones are unaffected, and the choice survives compaction and `--resume`. `default on|off` sets what sessions without their own choice use, new ones included. `#lean` or `#deep` force a tier for a single prompt. The codex switches under `~/.codex` are separate.
 
-Run exactly one command based on `$ARGUMENTS` (default: `on`), then reply in one line.
+Run exactly one command, then reply with its output line (minus the `[LEAN]` tag) and nothing else:
 
-- `on`: `touch ~/.claude/lean.on` -> reply `lean mode ON (every prompt, all sessions). tiers: T0 trivial / T1 standard / T2 critical, auto-picked per prompt; force with #lean or #deep. /lean-always off to disable.`
-- `off`: `rm -f ~/.claude/lean.on` -> reply `lean mode OFF (all sessions, this harness).`
-- `status`: `test -f ~/.claude/lean.on && echo ON || echo OFF` -> reply with the result plus the tier line above if ON, noting it is global to claude code.
+`bash ~/.claude/hooks/lean-mode.sh claude set "$CLAUDE_CODE_SESSION_ID" always $ARGUMENTS`
+
+Empty `$ARGUMENTS` means `on`. If the command exits non-zero, relay its error line. The hook usually applies the same change from the prompt before this turn; running it again is harmless.
 
 ## How the hook tiers (for reference, do not repeat to the user)
 
@@ -26,4 +26,4 @@ Run exactly one command based on `$ARGUMENTS` (default: `on`), then reply in one
 - Agent models: sonnet mechanical, opus (Opus 5.5) judgment. fable (Fable 5.1) is rare: when asked, for absolutely critical or extremely complex work, after opus fails a step twice, and one review of any plan fanning out to 3+ agents.
 - Every tier keeps: read before asserting, never fabricate to stay short, keep all findings (cut filler not content).
 
-While the flag is on, this very turn is already lean: obey the injected directive. No other output.
+While this session's switch is on, this very turn is already lean: obey the injected directive. No other output.
