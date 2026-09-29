@@ -20,8 +20,8 @@ Empty `$ARGUMENTS` means `on`. If the command exits non-zero, relay its error li
 ## How the hook tiers (for reference, do not repeat to the user)
 
 - T0 trivial: prompt under 120 chars with no risk words. Answer from knowledge, minimal output.
-- T1 standard: everything else. Full thinking, targeted reads, minimal diffs, dense output, <=2 agents only for independent large work.
-- T2 critical: risk or scope words (prod, security, auth, migration, deploy, refactor, codebase, parallel, design, thorough, deep...) or prompt over 600 chars. Full depth, parallel agents scoped to the number of genuinely independent tracks (cap 5), optional single verifier when a wrong result is costly.
+- T1 standard: everything else. Full thinking, targeted reads, minimal diffs, dense output, agents only for large independent work.
+- T2 critical: risk or scope words (prod, security, auth, migration, deploy, refactor, codebase, parallel, design, thorough, deep...) or prompt over 600 chars. Full depth, parallel agents scoped to the number of genuinely independent tracks, optional single verifier when a wrong result is costly.
 - `#lean` anywhere in a prompt forces T0, `#deep` forces T2.
 - Agent models: sonnet mechanical, opus (Opus 5.5) judgment. fable (Fable 5.1) is rare: when asked, for absolutely critical or extremely complex work, after opus fails a step twice, and one review of any plan fanning out to 3+ agents.
 - Every tier keeps: read before asserting, never fabricate to stay short, keep all findings (cut filler not content).

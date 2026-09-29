@@ -38,7 +38,7 @@ the hook applies the command from the prompt before the model sees it, so it wor
 | --- | --- | --- | --- | --- |
 | T0 | under 120 chars, no action verb or risk word, or `#lean` | answer from knowledge, open a file only if needed | ~45 / ~10 tokens | 60 to 80% of output, most tool calls gone |
 | T1 | everything else, any edit or run ask | exact-line reads, minimal diffs, one verify per change, no narration | ~180 / ~10 tokens | 40 to 60% of output and tool tokens |
-| T2 | production, security, auth, migration, deploy, codebase, parallel, orchestrate, architecture, over 600 chars, or `#deep` | full depth, agents only for independent tracks (cap 5), one verifier when a miss is costly, one premium review of any plan fanning out to 3+ agents | ~290 / ~10 tokens | 20 to 40%, mainly from avoided agent fan-out |
+| T2 | production, security, auth, migration, deploy, codebase, parallel, orchestrate, architecture, over 600 chars, or `#deep` | full depth, agents only for independent tracks, one verifier when a miss is costly, one premium review of any plan fanning out to 3+ agents | ~290 / ~10 tokens | 20 to 40%, mainly from avoided agent fan-out |
 
 savings are estimates from typical claude code sessions, not benchmarks. the full text is injected on a tier change and every eighth prompt, a ten token reminder otherwise, and again after compaction. `yes`, `ok`, `continue` and other short follow-ups inherit the previous tier.
 
