@@ -17,7 +17,7 @@ the installer detects claude code and codex cli and asks which to set up. `--cla
 | claude code | `/lean-always on` | `~/.claude/skills/lean-always` | `~/.claude/settings.json` |
 | codex cli | `$lean-always on` | `~/.agents/skills/lean-always` | `~/.codex/hooks.json` + `[features] hooks = true` in `config.toml` |
 
-the hook script is shared; only the delegation wording differs: claude hands mechanical work to sonnet and judgment to opus (Opus 5.5); codex uses `gpt-6-luna` and `gpt-6-sol`. the premium model (fable (Fable 5.1) on claude, `gpt-6-astra` on codex) is rare: only when asked, for absolutely critical or extremely complex work, after the judgment model fails the same step twice, and for one review of any plan that fans out to 3+ agents before the cheaper workers start. codex cannot change reasoning effort from a hook, so set `model_reasoning_effort` in `config.toml` yourself.
+the hook script is shared; only the delegation wording differs: claude hands mechanical work to sonnet and judgment to opus (Opus 5.5); codex uses `gpt-6-luna` and `gpt-6-sol`. spawned agents never run the premium model (fable (Fable 5.1) on claude, `gpt-6-astra` on codex): the session does the planning, and says so in one line when the task needs the premium model and it is not on it. codex cannot change reasoning effort from a hook, so set `model_reasoning_effort` in `config.toml` yourself.
 
 ## scope
 
@@ -28,7 +28,7 @@ the switch is per session. `/lean-always on` in one window affects that window o
 | `lean-always on` / `off` | tiered directive for this session |
 | `lean-always status` | this session's switch, plus the default |
 | `lean-always default on` / `off` | what sessions that never ran `lean-always on` or `off` get, new ones included |
-| `#lean`, `#deep` in a prompt | force T0 or T2 for that prompt only |
+| `#lean`, `#deep`, `#par` in a prompt | force T0, T2, or T2 plus loading the parallel-orchestration skill |
 
 the hook applies the command from the prompt before the model sees it, so it works on the same turn. on claude code the skill also runs `lean-mode.sh claude set "$CLAUDE_CODE_SESSION_ID" ...` directly, which is a no-op if the hook already did it. the switch lives in `<harness home>/lean-state/<session_id>.always`, the default in `<harness home>/lean.on`. the two harnesses keep separate state and do not affect each other.
 
@@ -38,7 +38,7 @@ the hook applies the command from the prompt before the model sees it, so it wor
 | --- | --- | --- | --- | --- |
 | T0 | under 120 chars, no action verb or risk word, or `#lean` | answer from knowledge, open a file only if needed | ~45 / ~10 tokens | 60 to 80% of output, most tool calls gone |
 | T1 | everything else, any edit or run ask | exact-line reads, minimal diffs, one verify per change, no narration | ~180 / ~10 tokens | 40 to 60% of output and tool tokens |
-| T2 | production, security, auth, migration, deploy, codebase, parallel, orchestrate, architecture, over 600 chars, or `#deep` | full depth, agents only for independent tracks, one verifier when a miss is costly, one premium review of any plan fanning out to 3+ agents | ~290 / ~10 tokens | 20 to 40%, mainly from avoided agent fan-out |
+| T2 | production, security, auth, migration, deploy, codebase, parallel, orchestrate, architecture, over 600 chars, or `#deep` | full depth, agents only for independent tracks, one verifier when a miss is costly, the parallel-orchestration skill for builds with 3 or more tracks | ~290 / ~10 tokens | 20 to 40%, mainly from avoided agent fan-out |
 
 savings are estimates from typical claude code sessions, not benchmarks. the full text is injected on a tier change and every eighth prompt, a ten token reminder otherwise, and again after compaction. `yes`, `ok`, `continue` and other short follow-ups inherit the previous tier.
 

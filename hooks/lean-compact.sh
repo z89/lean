@@ -3,7 +3,19 @@
 # this session so the full directive is re-injected after compaction. the
 # session's on/off switch (<session_id>.always) is kept.
 # usage: lean-compact.sh [claude|codex]   default claude
-case "${1:-claude}" in claude) D="$HOME/.claude" ;; codex) D="$HOME/.codex" ;; *) exit 0 ;; esac
-sid=$(sed -n 's/.*"session_id" *: *"\([A-Za-z0-9_-]*\)".*/\1/p' | head -1)
-[ -n "$sid" ] && rm -f "$D/lean-state/$sid"
+# root: $CLAUDE_HOME / $CODEX_HOME if set, else ~/.claude / ~/.codex.
+case "${1:-claude}" in claude) D="${CLAUDE_HOME:-$HOME/.claude}" ;; codex) D="${CODEX_HOME:-$HOME/.codex}" ;; *) exit 0 ;; esac
+LEAN_HOME="$D" python3 -c '
+import json, os, re, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    sys.exit()
+sid = d.get("session_id") if isinstance(d, dict) else None
+if isinstance(sid, str) and re.fullmatch(r"[A-Za-z0-9_-]+", sid):
+    try:
+        os.remove(os.path.join(os.environ["LEAN_HOME"], "lean-state", sid))
+    except OSError:
+        pass
+' 2>/dev/null
 exit 0
