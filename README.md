@@ -1,11 +1,9 @@
 <h1 align="center">lean</h1>
 
 <p align="center">
-  <a href="https://github.com/z89/lean/stargazers"><img src="https://img.shields.io/github/stars/z89/lean?style=flat-square&color=a6e3a1&labelColor=1b1a20" alt="stars"></a>
-  <a href="https://github.com/z89/lean/commits/main"><img src="https://img.shields.io/github/last-commit/z89/lean?style=flat-square&color=a6e3a1&labelColor=1b1a20" alt="last commit"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-a6e3a1?style=flat-square&labelColor=1b1a20" alt="license MIT"></a>
   <img src="https://img.shields.io/badge/claude%20code-hook%20%2B%20skill-a6e3a1?style=flat-square&labelColor=1b1a20" alt="claude code hook and skill">
   <img src="https://img.shields.io/badge/codex%20cli-hook%20%2B%20skill-a6e3a1?style=flat-square&labelColor=1b1a20" alt="codex cli hook and skill">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-a6e3a1?style=flat-square&labelColor=1b1a20" alt="license MIT"></a>
 </p>
 
 lean is a `UserPromptSubmit` hook for claude code and codex cli that adds a token-saving directive to each prompt. it sorts the prompt into one of three tiers, from a direct answer for a quick question to full depth with scoped parallel agents for production or security work. each tier cuts output, narration and file reads, and none of them limit how much the model thinks.
@@ -14,19 +12,21 @@ the switch is per session, with a default for sessions that never set their own,
 
 ## ✨ highlights
 
-- 🎚 **three tiers**: a short answer for quick questions, exact-line reads and minimal diffs for edits, full depth for risky or wide work.
-- 🧠 **thinking untouched**: every tier limits what the model writes and reads, never how carefully it reasons.
-- 🔍 **targeted reads**: `grep -n` and `sed -n` for the exact lines, filtered command output, one verification per change, no re-reads.
-- 🤖 **scoped delegation**: agents only for independent tracks, mechanical and judgment work on different models, the premium model never spawned.
-- 🔁 **per-session switch**: on or off for one window, kept through compaction and resume, with a default for new sessions.
-- 🪶 **small footprint**: a ten token reminder on most prompts, the full directive only when the tier changes.
+- 🎚 **three tiers** give quick questions a short answer, edits exact-line reads and minimal diffs, and risky or wide work full depth.
+- 🧠 **thinking stays untouched**, since every tier limits what the model writes and reads, never how carefully it reasons.
+- 🔍 **targeted reads** use `grep -n` and `sed -n` for the exact lines, with filtered command output, one verification per change and no re-reads.
+- 🤖 **scoped delegation** spawns agents only for independent tracks, puts mechanical and judgment work on different models and never spawns the premium model.
+- 🔁 **a per-session switch** turns lean on or off for one window, survives compaction and resume, and has a default for new sessions.
+- 🪶 **a small footprint** of a ten token reminder on most prompts, with the full directive only when the tier changes.
 
 ## 📦 install
 
 needs `python3` and `jq`.
 
 ```sh
-git clone git@github.com:z89/lean.git && cd lean && ./install.sh
+git clone https://github.com/z89/lean
+cd lean
+./install.sh
 ```
 
 the installer detects claude code and codex cli and asks which to set up. `--claude`, `--codex` or `--all` skip the question, `--adopt` replaces existing files at the target paths with symlinks. `./uninstall.sh` asks the same way and reverses everything.
@@ -38,17 +38,14 @@ the installer detects claude code and codex cli and asks which to set up. `--cla
 
 lean is off after install. `lean-always on` turns it on for one session, `lean-always default on` for every session.
 
-## 🤖 models
+## 🔍 before and after
 
-the hook script is shared by both harnesses. the only difference is which models the directive names for delegated work.
-
-| work | claude code | codex cli |
-| --- | --- | --- |
-| 🔧 mechanical | sonnet | `gpt-6-luna` |
-| 🧩 judgment | opus (Opus 5.5) | `gpt-6-sol` |
-| 🚫 never spawned | fable (Fable 5.1) | `gpt-6-astra` |
-
-the session does the planning itself. when a task needs the premium model and the session runs on another one, it says so in one line. codex cannot change reasoning effort from a hook, so set `model_reasoning_effort` in `config.toml` yourself.
+| prompt | without | with | est. tokens |
+| --- | --- | --- | --- |
+| `what does git rebase do` | 400 word explanation with headers, examples, caveats | five bullets, answer first | ~600 to ~150 |
+| `fix the null check in user.ts` | reads whole file, explains plan, edits, re-reads, runs full test suite, recaps | `grep -n` the function, one edit, one filtered test run, one line result | ~4k to ~1.2k |
+| `refactor auth across the codebase for prod` | 4 to 6 exploratory agents, narrated progress, long summary | one plan, agents matched to independent tracks, one verifier, dense outcome | ~60k to ~25k |
+| `ok` (after an edit task) | treated as a fresh question | inherits T1 rules, continues the task | no regression |
 
 ## 🎚 commands
 
@@ -73,14 +70,17 @@ the hook applies the command from the prompt before the model sees it, so it tak
 
 savings are estimates from typical claude code sessions, not benchmarks. sizes are character counts divided by four. `yes`, `ok`, `continue` and other short follow-ups inherit the previous tier.
 
-## 🔍 before and after
+## 🤖 models
 
-| prompt | without | with | est. tokens |
-| --- | --- | --- | --- |
-| `what does git rebase do` | 400 word explanation with headers, examples, caveats | five bullets, answer first | ~600 to ~150 |
-| `fix the null check in user.ts` | reads whole file, explains plan, edits, re-reads, runs full test suite, recaps | `grep -n` the function, one edit, one filtered test run, one line result | ~4k to ~1.2k |
-| `refactor auth across the codebase for prod` | 4 to 6 exploratory agents, narrated progress, long summary | one plan, agents matched to independent tracks, one verifier, dense outcome | ~60k to ~25k |
-| `ok` (after an edit task) | treated as a fresh question | inherits T1 rules, continues the task | no regression |
+the hook script is shared by both harnesses. the only difference is which models the directive names for delegated work.
+
+| work | claude code | codex cli |
+| --- | --- | --- |
+| 🔧 mechanical | sonnet | `gpt-6-luna` |
+| 🧩 judgment | opus (Opus 5.5) | `gpt-6-sol` |
+| 🚫 never spawned | fable (Fable 5.1) | `gpt-6-astra` |
+
+the session does the planning itself. when a task needs the premium model and the session runs on another one, it says so in one line. codex cannot change reasoning effort from a hook, so set `model_reasoning_effort` in `config.toml` yourself.
 
 ## 💾 state
 

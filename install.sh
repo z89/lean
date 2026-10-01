@@ -144,6 +144,6 @@ PY
 fi
 
 head_ "🎉 installed"
-[ "$WANT_CLAUDE" = 1 ] && printf '  claude code: %s/lean-always on%s or %s/lean on%s in a session to enable it there\n' "$C" "$R" "$C" "$R"
-[ "$WANT_CODEX" = 1 ]  && printf '  codex cli:   %s$lean-always on%s or %s$lean on%s in a session to enable it there\n' "$C" "$R" "$C" "$R"
+[ "$WANT_CLAUDE" = 1 ] && printf '  claude code: %s/lean-always on%s in a session to enable it there\n' "$C" "$R"
+[ "$WANT_CODEX" = 1 ]  && printf '  codex cli:   %s$lean-always on%s in a session to enable it there\n' "$C" "$R"
 printf '  %s./uninstall.sh reverses everything%s\n\n' "$D" "$R"
