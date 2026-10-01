@@ -43,7 +43,8 @@ unwire_json() { local f="$1"; [ -f "$f" ] || return 0
       .hooks[$ev] |= map(select([.hooks[]?.command] | any(test("/lean-(mode|compact)\\.sh( codex)?$")) | not)) |
       if (.hooks[$ev] | length) == 0 then del(.hooks[$ev]) else . end
     else . end;
-    strip("UserPromptSubmit") | strip("PreCompact")
+    strip("UserPromptSubmit") | strip("PreCompact") |
+    if .hooks == {} then del(.hooks) else . end
   ' "$f" > "$f.lean-tmp" && jq -e . "$f.lean-tmp" >/dev/null && mv "$f.lean-tmp" "$f" && ok "$f ${D}hook entries removed${R}"
 }
 command -v jq >/dev/null || die "jq is required to edit the hook config"
@@ -58,10 +59,31 @@ if [ "$WANT_CODEX" = 1 ]; then
   head_ "🧭 codex cli"
   unlink_ "$CODEX_HOME/hooks/lean-mode.sh" "$CODEX_HOME/hooks/lean-compact.sh" "$AGENTS_HOME/skills/lean" "$AGENTS_HOME/skills/lean-always"
   unwire_json "$CODEX_HOME/hooks.json"
-  [ -f "$CODEX_HOME/hooks.json" ] && [ "$(jq '.hooks // {} | length' "$CODEX_HOME/hooks.json")" = 0 ] && [ "$(jq 'length' "$CODEX_HOME/hooks.json")" = 1 ] && rm -f "$CODEX_HOME/hooks.json" && ok "$CODEX_HOME/hooks.json ${D}empty, removed${R}"
-  if [ -f "$CODEX_HOME/config.toml" ] && grep -q '# lean$' "$CODEX_HOME/config.toml"; then
-    sed -i.lean-tmp '/# lean$/d' "$CODEX_HOME/config.toml" && rm -f "$CODEX_HOME/config.toml.lean-tmp" && ok "config.toml ${D}hooks flag line removed${R}"
+  [ -f "$CODEX_HOME/hooks.json" ] && jq -e '. == {}' "$CODEX_HOME/hooks.json" >/dev/null && rm -f "$CODEX_HOME/hooks.json" && ok "$CODEX_HOME/hooks.json ${D}empty, removed${R}"
+  # codex runs no hooks without that flag, so it stays while any other hook is configured;
+  # lean and gloss each tag it, and whichever leaves last removes it
+  if [ -f "$CODEX_HOME/config.toml" ] && grep -qE '# (lean|gloss)$' "$CODEX_HOME/config.toml" &&
+     { [ -f "$CODEX_HOME/hooks.json" ] || grep -q '^[[:space:]]*\[\[hooks\.' "$CODEX_HOME/config.toml"; }; then
+    printf '  %s➖ config.toml hooks flag kept, other hooks still need it%s\n' "$D" "$R"
+  elif [ -f "$CODEX_HOME/config.toml" ] && grep -qE '# (lean|gloss)$' "$CODEX_HOME/config.toml"; then
+    # drop the tagged line, then a [features] table it leaves empty, then trailing blank lines
+    python3 - "$CODEX_HOME/config.toml" <<'PY'
+import os, re, sys
+p = sys.argv[1]; s = open(p).read()
+s = re.sub(r"^[^\n]*# (?:lean|gloss)[ \t]*(?:\n|\Z)", "", s, flags=re.M)
+s = re.sub(r"^\[features\][ \t]*\n(?=\s*(?:\[|\Z))", "", s, flags=re.M)
+s = s.rstrip("\n") + "\n" if s.strip() else ""
+tmp = p + ".lean-tmp"
+with open(tmp, "w") as f:
+    f.write(s)
+os.replace(tmp, p)
+PY
+    ok "config.toml ${D}hooks flag line removed${R}"
   fi
   rm -f "$CODEX_HOME/lean.on"; rm -rf "$CODEX_HOME/lean-state"; ok "flag and state cleared"
 fi
+# directories the installer created, only when nothing else is left in them
+for d in "$CLAUDE_HOME/hooks" "$CLAUDE_HOME/skills" "$CODEX_HOME/hooks" "$AGENTS_HOME/skills" "$AGENTS_HOME"; do
+  [ -d "$d" ] && rmdir "$d" 2>/dev/null || true
+done
 head_ "👋 uninstalled"; echo
