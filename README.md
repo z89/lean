@@ -3,7 +3,7 @@
 <p align="center">
   <a href="https://github.com/z89/lean/stargazers"><img src="https://img.shields.io/github/stars/z89/lean?style=flat-square&color=a6e3a1&labelColor=1b1a20" alt="stars"></a>
   <a href="https://github.com/z89/lean/commits/main"><img src="https://img.shields.io/github/last-commit/z89/lean?style=flat-square&color=a6e3a1&labelColor=1b1a20" alt="last commit"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/z89/lean?style=flat-square&color=a6e3a1&labelColor=1b1a20" alt="license"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-a6e3a1?style=flat-square&labelColor=1b1a20" alt="license MIT"></a>
   <img src="https://img.shields.io/badge/claude%20code-hook%20%2B%20skill-a6e3a1?style=flat-square&labelColor=1b1a20" alt="claude code hook and skill">
   <img src="https://img.shields.io/badge/codex%20cli-hook%20%2B%20skill-a6e3a1?style=flat-square&labelColor=1b1a20" alt="codex cli hook and skill">
 </p>
